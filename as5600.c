@@ -167,21 +167,37 @@ esp_err_t as5600_read_angles_and_status(as5600_dev_t *dev, uint16_t *raw_angle, 
     }
 #endif
 
-    uint8_t reg = AS5600_REG_STATUS;
-    uint8_t buffer[5];
-    esp_err_t err = i2c_master_transmit_receive(dev->i2c_dev, &reg, 1, buffer, 5, -1);
-    if (err == ESP_OK) {
-        if (status) {
-            *status = buffer[0];
-        }
-        if (raw_angle) {
-            *raw_angle = (((uint16_t)buffer[1] << 8) | buffer[2]) & 0x0FFF;
-        }
-        if (angle) {
-            *angle = (((uint16_t)buffer[3] << 8) | buffer[4]) & 0x0FFF;
+    esp_err_t err = ESP_OK;
+
+    if (status) {
+        uint8_t reg = AS5600_REG_STATUS;
+        err = i2c_master_transmit_receive(dev->i2c_dev, &reg, 1, status, 1, -1);
+        if (err != ESP_OK) {
+            goto out;
         }
     }
 
+    if (raw_angle) {
+        uint8_t reg = AS5600_REG_RAW_ANGLE_H;
+        uint8_t buffer[2];
+        err = i2c_master_transmit_receive(dev->i2c_dev, &reg, 1, buffer, 2, -1);
+        if (err != ESP_OK) {
+            goto out;
+        }
+        *raw_angle = (((uint16_t)buffer[0] << 8) | buffer[1]) & 0x0FFF;
+    }
+
+    if (angle) {
+        uint8_t reg = AS5600_REG_ANGLE_H;
+        uint8_t buffer[2];
+        err = i2c_master_transmit_receive(dev->i2c_dev, &reg, 1, buffer, 2, -1);
+        if (err != ESP_OK) {
+            goto out;
+        }
+        *angle = (((uint16_t)buffer[0] << 8) | buffer[1]) & 0x0FFF;
+    }
+
+out:
 #if CONFIG_AS5600_THREAD_SAFE
     xSemaphoreGive(dev->lock);
 #endif
