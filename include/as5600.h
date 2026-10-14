@@ -11,6 +11,7 @@
 #endif
 
 #define AS5600_I2C_ADDRESS    0x36
+#define AS5600_COUNTS_PER_REVOLUTION 4096U
 
 // Registers
 #define AS5600_REG_ZMCO        0x00
@@ -45,11 +46,13 @@ typedef struct {
     uint8_t hysteresis;
     uint8_t slow_filter;
     uint8_t fast_filter_threshold;
+    int transfer_timeout_ms; /**< Timeout in ms for I2C and lock operations. <= 0 defaults to -1 (portMAX_DELAY). */
 } as5600_config_t;
 
 typedef struct {
     i2c_master_dev_handle_t i2c_dev;
     as5600_config_t config;
+    int transfer_timeout_ms;
 #if CONFIG_AS5600_THREAD_SAFE
     SemaphoreHandle_t lock;
     StaticSemaphore_t lock_buffer;
@@ -57,6 +60,8 @@ typedef struct {
 } as5600_dev_t;
 
 esp_err_t as5600_init(as5600_dev_t *dev, i2c_master_dev_handle_t i2c_dev, const as5600_config_t *config);
+esp_err_t as5600_init_with_timeout(as5600_dev_t *dev, i2c_master_dev_handle_t i2c_dev, const as5600_config_t *config, int timeout_ms);
+esp_err_t as5600_set_timeout(as5600_dev_t *dev, int timeout_ms);
 esp_err_t as5600_read_raw_angle(as5600_dev_t *dev, uint16_t *raw_angle);
 esp_err_t as5600_read_angle(as5600_dev_t *dev, uint16_t *angle);
 esp_err_t as5600_read_status(as5600_dev_t *dev, uint8_t *status);
